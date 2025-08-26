@@ -1,22 +1,62 @@
-name: Lighthouse PWA
+name: Lighthouse CI
 
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
+  pull_request:
 
 jobs:
   lhci:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - name: Install deps
+          node-version: 20
+          # NOTE: no cache here; ui lockfile may not exist
+
+      - name: Prep npm (avoid 403s / bad auth)
+        working-directory: ui
         run: |
-          cd ui
-          npm ci || npm install
+          # Force the public npm registry and disable always-auth
+          printf "registry=https://registry.npmjs.org/\nalways-auth=false\n" > .npmrc
+          # Ensure no legacy token from env or global config interferes
+          npm config delete //registry.npmjs.org/:_authToken || true
+          # Make network a bit more resilient
+          npm config set fetch-retries 5
+          npm config set fetch-retry-maxtimeout 120000
+          npm config set fetch-retry-mintimeout 10000
+
+      - name: Install deps (with fallbacks)
+        working-directory: ui
+        shell: bash
+        run: |
+          set -e
+          # Try clean install when a lockfile exists
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund || true
+          fi
+          # If node_modules still missing or no lockfile, fall back to install
+          if [ ! -d node_modules ] || [ ! -f package-lock.json ]; then
+            npm install --no-audit --no-fund || true
+          fi
+          # As a last resort, switch to the yarnpkg mirror and retry
+          if [ ! -d node_modules ]; then
+            echo "Primary registry failed; retrying via yarnpkg mirror..."
+            npm config set registry https://registry.yarnpkg.com
+            npm install --no-audit --no-fund
+          fi
+
       - name: Run Lighthouse CI (local dev server)
         working-directory: ui
-        run: npx lhci autorun --config=.lighthouserc.json || true
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        run: |
+          # Uses .lighthouserc.* if present; temporary public upload to view results
+          npx @lhci/cli@0.13.x autorun --upload.target=temporary-public-storage ||           npx @lhci/cli@0.13.x autorun --collect.numberOfRuns=1 --upload.target=temporary-public-storage
