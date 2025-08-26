@@ -1,0 +1,17 @@
+groups:
+- name: qikiworld-slo
+  interval: 30s
+  rules:
+  # Error rate
+  - record: qiki_http_errors_ratio_5m
+    expr: (sum(rate(http_server_errors_total[5m])))
+  - record: qiki_http_requests_5m
+    expr: (sum(rate(http_server_request_duration_seconds_count[5m])))
+  - record: qiki_error_rate_5m
+    expr: (qiki_http_errors_ratio_5m) / clamp_min(qiki_http_requests_5m, 1)
+
+  # Latency quantiles
+  - record: qiki_latency_p95
+    expr: histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket[5m])) by (le))
+  - record: qiki_latency_p99
+    expr: histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket[5m])) by (le))

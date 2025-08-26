@@ -1,0 +1,12 @@
+[Unit]
+Description=Qikiworld nightly backup
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/qikiworld
+Environment=COMPOSE_FILE=free-compose.yml
+Environment=BACKUP_DIR=/opt/qiki-backups
+ExecStart=/opt/qikiworld/scripts/backup.sh
+Nice=10
+IOSchedulingClass=best-effort

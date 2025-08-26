@@ -1,0 +1,9 @@
+[Unit]
+Description=Qikiworld DSR export cleanup
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/qikiworld/server
+Environment=DSR_RETENTION_DAYS=30
+ExecStart=/usr/bin/node dist/src/jobs/dsrCleanup.js

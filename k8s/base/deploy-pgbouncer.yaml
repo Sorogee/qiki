@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: pgbouncer, namespace: qikiworld }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: pgbouncer } }
+  template:
+    metadata: { labels: { app: pgbouncer } }
+    spec:
+      containers:
+        - name: pgbouncer
+          image: edoburu/pgbouncer:1.21.0
+          ports: [{ containerPort: 6432 }]
+          env:
+            - name: DB_USER
+              valueFrom: { secretKeyRef: { name: qikiworld-secrets, key: POSTGRES_USER } }
+            - name: DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: qikiworld-secrets, key: POSTGRES_PASSWORD } }
+          volumeMounts:
+            - name: cfg
+              mountPath: /etc/pgbouncer
+      volumes:
+        - name: cfg
+          configMap:
+            name: pgbouncer-config
+---
+apiVersion: v1
+kind: Service
+metadata: { name: pgbouncer, namespace: qikiworld }
+spec:
+  selector: { app: pgbouncer }
+  ports: [{ name: pg, port: 6432, targetPort: 6432 }]

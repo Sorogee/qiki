@@ -1,0 +1,43 @@
+{
+  "ai": [
+    "artificial intelligence",
+    "machine learning",
+    "ml"
+  ],
+  "movie": [
+    "film",
+    "cinema"
+  ],
+  "tv": [
+    "television",
+    "series"
+  ],
+  "bug": [
+    "issue",
+    "defect"
+  ],
+  "iphone": [
+    "ios",
+    "apple phone"
+  ],
+  "android": [
+    "google phone"
+  ],
+  "crypto": [
+    "cryptocurrency",
+    "bitcoin",
+    "ethereum"
+  ],
+  "programming": [
+    "coding",
+    "software development"
+  ],
+  "news": [
+    "headline",
+    "breaking"
+  ],
+  "sport": [
+    "sports",
+    "athletics"
+  ]
+}

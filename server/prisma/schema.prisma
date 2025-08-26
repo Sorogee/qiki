@@ -1,0 +1,410 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DigestFreq {
+  OFF
+  DAILY
+  WEEKLY
+}
+
+enum GlobalRole {
+  USER
+  MOD
+  ADMIN
+}
+
+enum MemberRole {
+  OWNER
+  MOD
+  MEMBER
+}
+
+enum PostStatus {
+  VISIBLE
+  REMOVED
+  DELETED
+}
+
+model User {
+  id            String                @id @default(cuid())
+  username      String                @unique
+  email         String                @unique
+  passwordHash  String
+  role          GlobalRole            @default(USER)
+  bio           String?
+  avatarUrl     String?
+  emailVerified Boolean               @default(false)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  security      UserSecurity?
+  deviceSessions DeviceSession[]
+  posts         Post[]
+  comments      Comment[]
+  postVotes     PostVote[]
+  votes         Vote[]
+  webAuthnCredentials WebAuthnCredential[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  @@index([username])
+  @@index([email])
+}
+
+model UserSecurity {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @unique
+  totpSecret String?
+  recoveryCodes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DeviceSession {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  tokenId   String   @index
+  ip        String?
+  ua        String?
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+}
+
+model Community {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  about     String?
+  rules     String?
+  nsfw      Boolean  @default(false)
+  creator   User     @relation(fields: [creatorId], references: [id])
+  creatorId String
+  createdAt DateTime @default(now())
+
+  members   CommunityMember[]
+  posts     Post[]
+  flairs    Flair[]
+  modmail   ModmailThread[]
+}
+
+model CommunityMember {
+  id          String     @id @default(cuid())
+  user        User       @relation(fields: [userId], references: [id])
+  userId      String
+  community   Community  @relation(fields: [communityId], references: [id])
+  communityId String
+  role        MemberRole @default(MEMBER)
+  createdAt   DateTime   @default(now())
+
+  @@unique([userId, communityId])
+  @@index([communityId, role])
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  community   Community  @relation(fields: [communityId], references: [id])
+  communityId String
+  author      User       @relation(fields: [authorId], references: [id])
+  authorId    String
+  title       String
+  body        String?
+  status      PostStatus @default(VISIBLE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  comments    Comment[]
+  votes       PostVote[]
+  flairs      PostFlair[]
+
+  @@index([communityId, createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  body      String
+  parentId  String?
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
+}
+
+model PostVote {
+  id        String   @id @default(cuid())
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  value     Int
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+/// Generic vote (optional)
+model Vote {
+  id         String   @id @default(cuid())
+  postId     String?
+  commentId  String?
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  value      Int
+  createdAt  DateTime @default(now())
+}
+
+model SavedSearch {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  query     String
+  createdAt DateTime @default(now())
+}
+
+model SearchEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  query     String
+  kind      String
+  createdAt DateTime @default(now())
+}
+
+model Upload {
+  id        String   @id @default(cuid())
+  userId    String?
+  key       String
+  contentType String
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  type      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model NotificationPreference {
+  id           String     @id @default(cuid())
+  userId       String     @unique
+  emailDigests DigestFreq @default(DAILY)
+  realtime     Boolean    @default(true)
+  lastDigestAt DateTime?
+  createdAt    DateTime   @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     User?    @relation(fields: [actorId], references: [id])
+  actorId   String?
+  action    String
+  meta      Json?
+  createdAt DateTime @default(now())
+}
+
+model DSRRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  status    String
+  createdAt DateTime @default(now())
+  processedAt DateTime?
+}
+
+model AuthChallenge {
+  id        String   @id @default(cuid())
+  userId    String?
+  type      String
+  secret    String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model EmailToken {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  ip        String?
+  userId    String?
+  ok        Boolean
+  createdAt DateTime @default(now())
+}
+
+model InviteCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  createdBy String?
+  usedBy    String?
+  createdAt DateTime @default(now())
+  usedAt    DateTime?
+}
+
+model Mention {
+  id        String   @id @default(cuid())
+  sourceType String
+  sourceId  String
+  mentionedUserId String
+  createdAt DateTime @default(now())
+}
+
+model Synonym {
+  id        String   @id @default(cuid())
+  term      String
+  alt       String
+  createdAt DateTime @default(now())
+}
+
+model WebAuthnCredential {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  credId    String   @unique
+  publicKey String
+  createdAt DateTime @default(now())
+}
+
+/// Moderation features
+
+model Flair {
+  id           String    @id @default(cuid())
+  community    Community @relation(fields: [communityId], references: [id])
+  communityId  String
+  name         String
+  textColor    String?
+  bgColor      String?
+  isUserFlair  Boolean   @default(false)
+  modOnly      Boolean   @default(false)
+  createdBy    User?     @relation(fields: [createdById], references: [id])
+  createdById  String?
+  createdAt    DateTime  @default(now())
+
+  postFlairs   PostFlair[]
+  userFlairs   UserFlair[]
+
+  @@unique([communityId, name, isUserFlair])
+}
+
+model PostFlair {
+  id          String  @id @default(cuid())
+  post        Post    @relation(fields: [postId], references: [id])
+  postId      String
+  flair       Flair   @relation(fields: [flairId], references: [id])
+  flairId     String
+  assignedBy  User?   @relation(fields: [assignedById], references: [id])
+  assignedById String?
+  createdAt   DateTime @default(now())
+
+  @@unique([postId, flairId])
+}
+
+model UserFlair {
+  id           String    @id @default(cuid())
+  user         User      @relation(fields: [userId], references: [id])
+  userId       String
+  community    Community @relation(fields: [communityId], references: [id])
+  communityId  String
+  flair        Flair     @relation(fields: [flairId], references: [id])
+  flairId      String
+  assignedBy   User?     @relation(fields: [assignedById], references: [id])
+  assignedById String?
+  createdAt    DateTime  @default(now())
+
+  @@unique([userId, communityId])
+}
+
+model ModmailThread {
+  id           String    @id @default(cuid())
+  community    Community @relation(fields: [communityId], references: [id])
+  communityId  String
+  subject      String
+  createdBy    User      @relation(fields: [createdById], references: [id])
+  createdById  String
+  status       String    @default("OPEN")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  messages     ModmailMessage[]
+  participants ModmailParticipant[]
+}
+
+model ModmailMessage {
+  id        String   @id @default(cuid())
+  thread    ModmailThread @relation(fields: [threadId], references: [id])
+  threadId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+}
+
+model ModmailParticipant {
+  id        String   @id @default(cuid())
+  thread    ModmailThread @relation(fields: [threadId], references: [id])
+  threadId  String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  role      String   @default("MOD")
+
+  @@unique([threadId, userId])
+}
+
+model ModerationAction {
+  id          String    @id @default(cuid())
+  actor       User      @relation(fields: [actorId], references: [id])
+  actorId     String
+  community   Community? @relation(fields: [communityId], references: [id])
+  communityId String?
+  targetType  String
+  targetId    String
+  action      String
+  reason      String?
+  details     Json?
+  evidence    Evidence? @relation(fields: [evidenceId], references: [id])
+  evidenceId  String?
+  createdAt   DateTime  @default(now())
+}
+
+model Evidence {
+  id          String    @id @default(cuid())
+  community   Community? @relation(fields: [communityId], references: [id])
+  communityId String?
+  moderationAction ModerationAction? @relation(fields: [moderationActionId], references: [id])
+  moderationActionId String?
+  kind        String
+  url         String?
+  note        String?
+  createdAt   DateTime  @default(now())
+
+  @@index([createdAt])
+}
+
+model Appeal {
+  id          String   @id @default(cuid())
+  userId      String
+  targetType  String
+  targetId    String
+  reason      String?
+  status      String   @default("OPEN")
+  createdAt   DateTime @default(now())
+}

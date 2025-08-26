@@ -1,0 +1,42 @@
+{
+  "title": "Qikiworld — Golden Signals",
+  "uid": "qiki-goldens",
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "HTTP latency (p50/p90/p99)",
+      "gridPos": {"x":0,"y":0,"w":24,"h":8},
+      "targets": [
+        {"expr": "histogram_quantile(0.5, sum(rate(http_server_request_duration_seconds_bucket[5m])) by (le))"},
+        {"expr": "histogram_quantile(0.9, sum(rate(http_server_request_duration_seconds_bucket[5m])) by (le))"},
+        {"expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket[5m])) by (le))"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests per second",
+      "gridPos": {"x":0,"y":8,"w":12,"h":6},
+      "targets": [{"expr":"sum(rate(http_server_request_duration_seconds_count[1m]))"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP errors (5xx)",
+      "gridPos": {"x":12,"y":8,"w":12,"h":6},
+      "targets": [{"expr":"sum(rate(http_server_errors_total[5m]))"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "In-flight requests",
+      "gridPos": {"x":0,"y":14,"w":12,"h":6},
+      "targets": [{"expr":"sum(http_server_in_flight_requests)"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Cache hit ratio",
+      "gridPos": {"x":12,"y":14,"w":12,"h":6},
+      "targets": [{"expr":"sum(rate(cache_hit_total[5m])) / (sum(rate(cache_hit_total[5m])) + sum(rate(cache_miss_total[5m])))"}]
+    }
+  ]
+}

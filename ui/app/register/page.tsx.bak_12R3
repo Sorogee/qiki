@@ -1,0 +1,14 @@
+'use client';
+import { useState } from 'react';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+export default function Register() {
+  const [username, setUsername] = useState(''); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [inviteCode, setInvite] = useState(''); const [msg, setMsg] = useState<string | null>(null);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const res = await fetch(`${API}/auth/register`, await withCsrfHeaders({ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, email, password, inviteCode: inviteCode || undefined }) });
+    const data = await res.json();
+    if (!res.ok) return setMsg(data.error || 'Registration failed');
+    localStorage.setItem('token', data.token); setMsg('Registered! Check email to verify.');
+  }
+  return (<form onSubmit={submit} className="card form"><h1>Create account</h1>{msg && <div className="muted">{String(msg)}</div>}<label>Username<input value={username} onChange={e=>setUsername(e.target.value)} required/></label><label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label><label>Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required/></label><label>Invite (optional)<input value={inviteCode} onChange={e=>setInvite(e.target.value)} /></label><button type="submit">Register</button></form>);
+}

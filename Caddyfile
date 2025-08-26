@@ -1,0 +1,12 @@
+:8080
+
+route {
+	@api path /api/*
+	handle @api {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		reverse_proxy ui:8080
+	}
+}

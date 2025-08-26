@@ -1,0 +1,8 @@
+# Staging overrides example (explicit tag)
+services:
+  server:
+    image: ghcr.io/your-org/qikiworld-server:vX.Y.Z
+  ui:
+    image: ghcr.io/your-org/qikiworld-ui:vX.Y.Z
+  media:
+    image: ghcr.io/your-org/qikiworld-media:vX.Y.Z

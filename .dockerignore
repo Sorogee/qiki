@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+dist
+Dockerfile.*
+*.log
+*.local
+.env
+**/.next/cache
+**/coverage

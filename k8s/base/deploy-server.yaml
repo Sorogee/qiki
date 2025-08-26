@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: server, namespace: qikiworld }
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  selector: { matchLabels: { app: server } }
+  template:
+    metadata: { labels: { app: server } }
+    spec:
+      terminationGracePeriodSeconds: 60
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values: ["server"]
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: server
+          image: ghcr.io/your-org/qikiworld-server:latest
+          ports: [{ containerPort: 4000 }]
+          resources:
+            requests: { cpu: "200m", memory: "256Mi" }
+            limits: { cpu: "1000m", memory: "1Gi" }
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh","-c","sleep 5"]
+
+          envFrom: [{ secretRef: { name: qikiworld-secrets } }]
+          readinessProbe: { httpGet: { path: /api/health, port: 4000 }, initialDelaySeconds: 5, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /api/health, port: 4000 }, initialDelaySeconds: 10, periodSeconds: 20 }

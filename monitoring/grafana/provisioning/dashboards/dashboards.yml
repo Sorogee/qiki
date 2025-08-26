@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: Qikiworld
+    orgId: 1
+    folder: Qikiworld
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/dashboards

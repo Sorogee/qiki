@@ -1,0 +1,67 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: qikiworld
+      POSTGRES_USER: qiki
+      POSTGRES_PASSWORD: qiki
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  server:
+    build:
+      context: ./server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      FREE_MODE: "true"
+      DATABASE_URL: postgres://qiki:qiki@postgres:5432/qikiworld
+      PORT: "4000"
+      # Optional: set if you want S3 later; FREE_MODE ignores them by default
+      # S3_BUCKET:
+      # S3_REGION:
+      # S3_ENDPOINT:
+    volumes:
+      - ./server/var/uploads:/app/var/uploads
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ./ui
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://${DOMAIN}  # used by client to call API through Caddy
+    depends_on:
+      - server
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      EMAIL: ${EMAIL:-admin@${DOMAIN}}
+    volumes:
+      - ./Caddyfile.free:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata: {}
+  caddy_data: {}
+  caddy_config: {}

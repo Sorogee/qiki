@@ -1,0 +1,8 @@
+# Production overrides example (pin images from GHCR)
+services:
+  server:
+    image: ghcr.io/your-org/qikiworld-server:latest
+  ui:
+    image: ghcr.io/your-org/qikiworld-ui:latest
+  media:
+    image: ghcr.io/your-org/qikiworld-media:latest

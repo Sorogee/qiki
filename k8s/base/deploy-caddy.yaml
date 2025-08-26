@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: caddy, namespace: qikiworld }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: caddy } }
+  template:
+    metadata: { labels: { app: caddy } }
+    spec:
+      containers:
+        - name: caddy
+          image: caddy:2.8.4
+          ports: [{ containerPort: 80 }, { containerPort: 443 }]
+          volumeMounts: [{ name: caddyfile, mountPath: /etc/caddy }]
+      volumes:
+        - name: caddyfile
+          configMap: { name: caddy-config }

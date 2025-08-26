@@ -1,0 +1,61 @@
+{
+	# Global options
+	encode zstd gzip
+	admin off
+	# Increase defaults a bit
+	order header before respond
+}
+
+{$DOMAIN} {
+	# Automatic HTTPS (Let’s Encrypt). Use DNS "DNS only" during first issue, then enable Cloudflare proxy.
+	# Optionally set: tls {$EMAIL}
+	# tls {
+	#   email {$EMAIL}
+	# }
+
+	@api path /api/* /img* /files/*
+	handle @api {
+		reverse_proxy server:4000
+	}
+
+	# Long cache for uploaded files (served by server under /files/*)
+	@files path /files/*
+	handle @files {
+		header Cache-Control "public, max-age=2592000, immutable"
+		reverse_proxy server:4000
+	}
+
+	# Next.js static assets: immutable
+	@next_static path /_next/static/* /_next/image* /assets/* /favicon.ico /icons/*
+	handle @next_static {
+		header Cache-Control "public, max-age=31536000, immutable"
+		reverse_proxy ui:8080
+	}
+
+	# HTML (UI) — set SWR-friendly headers for anonymous GETs
+	@html {
+		method GET
+		not path /api/* /img* /files/* /_next/* /assets/* /favicon.ico /icons/*
+	}
+	handle @html {
+		# Encourage CDN edge cache (SWR); browsers will mostly revalidate
+		header Cache-Control "public, s-maxage=60, stale-while-revalidate=30"
+		header Vary "Cookie, Authorization, Accept-Encoding"
+		reverse_proxy ui:8080
+	}
+
+	# Fallback
+	handle {
+		reverse_proxy ui:8080
+	}
+
+	# Security headers
+	header {
+		# Basic hardening (CSP may be customized per UI build)
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+	}
+}

@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: tempo-config, namespace: qikiworld }
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3200
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            http:
+              endpoint: 0.0.0.0:4318
+    storage:
+      trace:
+        backend: local
+        wal:
+          path: /tmp/tempo/wal
+        local:
+          path: /tmp/tempo/blocks
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: tempo, namespace: qikiworld, labels: { app: tempo } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: tempo } }
+  template:
+    metadata: { labels: { app: tempo } }
+    spec:
+      containers:
+      - name: tempo
+        image: grafana/tempo:2.5.0
+        args: ["-config.file=/etc/tempo/tempo.yaml"]
+        ports: [{ containerPort: 4318 }, { containerPort: 3200 }]
+        volumeMounts: [{ name: cfg, mountPath: /etc/tempo }]
+      volumes: [{ name: cfg, configMap: { name: tempo-config } }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: tempo, namespace: qikiworld }
+spec:
+  selector: { app: tempo }
+  ports:
+  - { name: otlp-http, port: 4318, targetPort: 4318 }
+  - { name: http, port: 3200, targetPort: 3200 }

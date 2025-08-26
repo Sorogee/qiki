@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: qikiworld
+resources:
+  - pdb-worker.yaml
+  - hpa-worker.yaml
+  - namespace.yaml
+  - deploy-server.yaml
+  - deploy-ui.yaml
+  - deploy-media.yaml
+  - deploy-caddy.yaml
+  - svc.yaml
+  - config-caddy.yaml
+  - hpa-server.yaml
+  - pdb-server.yaml
+  - tempo.yaml
+  - loki.yaml
+  - secret-example.yaml
+  - deploy-pgbouncer.yaml
+  - config-pgbouncer.yaml

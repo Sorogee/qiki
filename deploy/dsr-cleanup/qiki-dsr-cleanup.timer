@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily DSR export cleanup
+
+[Timer]
+OnCalendar=*-*-* 03:40:00
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

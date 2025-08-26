@@ -1,0 +1,26 @@
+groups:
+- name: qikiworld-alerts
+  rules:
+  - alert: HighErrorRate
+    expr: qiki_error_rate_5m > 0.01
+    for: 10m
+    labels: { severity: page }
+    annotations:
+      summary: "High error rate (>1% for 10m)"
+      description: "Investigate API errors. Check recent deploys and DB/Redis health."
+
+  - alert: HighLatency
+    expr: qiki_latency_p95 > 0.5
+    for: 10m
+    labels: { severity: ticket }
+    annotations:
+      summary: "High latency (p95 > 500ms)"
+      description: "Check hot paths, cache hit-rates, and DB saturation."
+
+  - alert: LowCacheHitRate
+    expr: (sum(rate(cache_hit_total[5m])) / (sum(rate(cache_hit_total[5m])) + sum(rate(cache_miss_total[5m])))) < 0.6
+    for: 15m
+    labels: { severity: ticket }
+    annotations:
+      summary: "Cache hit ratio below 60%"
+      description: "Feeds/search might be under-cached. Investigate invalidations and CDN rules."

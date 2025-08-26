@@ -1,0 +1,14 @@
+{
+  "dsr": {
+    "export": "/api/dsr/export",
+    "erasure": "/api/dsr/erasure",
+    "status": "/api/dsr/{id}",
+    "download": "/api/dsr/{id}/download"
+  },
+  "retention": {
+    "userExportDays": 30,
+    "evidenceDays": 90,
+    "backupDays": 7
+  },
+  "contact": "mailto:privacy@yourdomain.com"
+}

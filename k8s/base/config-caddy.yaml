@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: caddy-config, namespace: qikiworld }
+data:
+  Caddyfile: |
+    # Provide your domain in a secret EXTERNAL_DOMAIN; this is a placeholder static Caddyfile for k8s
+    :80 {
+      respond "Qikiworld Caddy (k8s) — configure TLS/ingress at the cluster level"
+    }

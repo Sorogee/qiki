@@ -1,0 +1,117 @@
+#cloud-config
+package_update: true
+packages:
+  - curl
+  - ca-certificates
+  - gnupg
+  - unzip
+  - ufw
+
+write_files:
+  - path: /opt/qikiworld/.env
+    permissions: "0644"
+    content: |
+      # Qikiworld env (FREE_MODE by default)
+      FREE_MODE=true
+      OPENSEARCH_ENABLED=false
+      REDIS_URL=
+      EMAIL_TRANSPORT=console
+      LOCAL_STORAGE_DIR=server/var/uploads
+      # Compose reads DOMAIN/EMAIL from environment as well
+      DOMAIN=${DOMAIN}
+      EMAIL=${EMAIL}
+
+  - path: /etc/systemd/system/qikiworld.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Qikiworld Docker Compose
+      Wants=docker.service
+      After=docker.service network-online.target
+      StartLimitIntervalSec=0
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=true
+      WorkingDirectory=/opt/qikiworld
+      EnvironmentFile=/opt/qikiworld/.env
+      ExecStartPre=/usr/bin/docker compose -f free-compose.yml pull
+      ExecStart=/usr/bin/docker compose -f free-compose.yml up -d
+      ExecStop=/usr/bin/docker compose -f free-compose.yml down
+      TimeoutStartSec=600
+      TimeoutStopSec=120
+      Restart=on-failure
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/systemd/system/qikiworld.path
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Launch Qikiworld when free-compose.yml appears
+
+      [Path]
+      PathExists=/opt/qikiworld/free-compose.yml
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /usr/local/bin/qiki-bootstrap-code.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      REPO_DIR="/opt/qikiworld"
+      mkdir -p "$REPO_DIR"
+      if [[ -n "${1:-}" ]]; then
+        echo "Fetching project zip from $1"
+        curl -fL "$1" -o /tmp/qiki.zip
+        unzip -o /tmp/qiki.zip -d /mnt
+        # try to find project root inside zip (look for free-compose.yml)
+        TARGET=$(dirname "$(grep -Rls --exclude-dir='.*' 'free-compose.yml' /mnt | head -n1)")
+        if [[ -z "$TARGET" ]]; then echo "free-compose.yml not found in zip"; exit 1; fi
+        cp -rT "$TARGET" "$REPO_DIR"
+      fi
+      chown -R root:root "$REPO_DIR"
+      systemctl daemon-reload
+      systemctl enable --now qikiworld.path
+      # If compose already present, start immediately
+      if [[ -f "$REPO_DIR/free-compose.yml" ]]; then
+        systemctl start qikiworld.service || true
+      fi
+      echo "Done. Upload your code to /opt/qikiworld and ensure free-compose.yml exists."
+
+  - path: /root/POST_INSTALL.txt
+    permissions: "0644"
+    content: |
+      Qikiworld bootstrap complete.
+
+      Next steps:
+      1) Upload your project to /opt/qikiworld (the folder should contain free-compose.yml).
+         Option A: scp your local folder or the provided zip, then unzip under /opt/qikiworld
+         Option B: run /usr/local/bin/qiki-bootstrap-code.sh <ZIP_URL>
+      2) Put your DOMAIN and EMAIL into /opt/qikiworld/.env (already templated by cloud-init).
+      3) Systemd will start Qikiworld automatically when free-compose.yml appears.
+
+runcmd:
+  # 1) Install Docker (official convenience script)
+  - [ bash, -lc, "curl -fsSL https://get.docker.com | sh" ]
+  - [ bash, -lc, "usermod -aG docker ubuntu || true" ]
+
+  # 2) Enable Docker service
+  - [ systemctl, enable, "--now", docker ]
+
+  # 3) Install Docker Compose plugin (should be included with recent docker-ce; ensure link)
+  - [ bash, -lc, "docker compose version || true" ]
+
+  # 4) Create project dir and enable path unit
+  - [ bash, -lc, "mkdir -p /opt/qikiworld && chmod 755 /opt/qikiworld" ]
+  - [ systemctl, daemon-reload ]
+  - [ systemctl, enable, "--now", "qikiworld.path" ]
+
+  # 5) Firewall (allow SSH/HTTP/HTTPS; deny others)
+  - [ bash, -lc, "ufw allow 22 && ufw allow 80 && ufw allow 443 && yes | ufw enable || true" ]
+
+final_message: "Cloud-init finished. Read /root/POST_INSTALL.txt for next steps."

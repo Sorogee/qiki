@@ -1,0 +1,27 @@
+server:
+  http_listen_port: 3200
+  log_level: warn
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: 0.0.0.0:4318
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /tmp/tempo/wal
+    local:
+      path: /tmp/tempo/blocks
+
+compactor:
+  compaction:
+    compaction_window: 1h
+    max_block_bytes: 1073741824
+    compacted_block_retention: 24h
+
+query_frontend:
+  max_outstanding_per_tenant: 4096

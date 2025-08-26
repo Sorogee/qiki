@@ -1,0 +1,14 @@
+{
+  "title": "Qikiworld — Cost Overview",
+  "uid": "qiki-costs",
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    { "type": "stat", "title": "Req cost (last hour, USD)", "gridPos": {"x":0,"y":0,"w":8,"h":4}, "targets": [{"expr":"qiki_req_cost_1h_usd"}] },
+    { "type": "stat", "title": "Projected API cost (30d)", "gridPos": {"x":8,"y":0,"w":8,"h":4}, "targets": [{"expr":"qiki_req_cost_30d_usd"}] },
+    { "type": "stat", "title": "Egress cost (30d)", "gridPos": {"x":16,"y":0,"w":8,"h":4}, "targets": [{"expr":"qiki_egress_cost_30d_usd"}] },
+    { "type": "stat", "title": "Storage cost (30d)", "gridPos": {"x":0,"y":4,"w":8,"h":4}, "targets": [{"expr":"qiki_storage_cost_30d_usd"}] },
+    { "type": "timeseries", "title": "Requests per second", "gridPos": {"x":8,"y":4,"w":16,"h":8}, "targets": [{"expr":"qiki_req_per_s"}] },
+    { "type": "timeseries", "title": "Req cost per second (USD)", "gridPos": {"x":0,"y":8,"w":8,"h":8}, "targets": [{"expr":"qiki_req_cost_per_s_usd"}] }
+  ]
+}

@@ -1,0 +1,8 @@
+[Unit]
+Description=Qikiworld moderation evidence cleanup
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/qikiworld/server
+ExecStart=/usr/bin/node dist/src/jobs/modRetention.js

@@ -1,0 +1,35 @@
+groups:
+- name: qikiworld-costs
+  interval: 1m
+  rules:
+  # Define unit costs as constant vectors (USD). Adjust per cloud/provider.
+  - record: qiki_cost_per_request_usd
+    expr: vector(0.000004)   # API cost per request (approx incl. LB + CPU amortized)
+  - record: qiki_cost_per_gb_egress_usd
+    expr: vector(0.09)       # CDN egress blended
+  - record: qiki_cost_per_gb_storage_usd
+    expr: vector(0.023)      # S3 standard
+  - record: qiki_cost_per_gb_logs_usd
+    expr: vector(0.005)      # Log storage
+
+  # Request-derived costs
+  - record: qiki_req_per_s
+    expr: sum(rate(http_server_request_duration_seconds_count[5m]))
+  - record: qiki_req_cost_per_s_usd
+    expr: qiki_req_per_s * qiki_cost_per_request_usd
+  - record: qiki_req_cost_1h_usd
+    expr: sum_over_time(qiki_req_cost_per_s_usd[1h])
+  - record: qiki_req_cost_30d_usd
+    expr: sum_over_time(qiki_req_cost_per_s_usd[30d])
+
+  # Storage rough costs (requires exporters for S3/object store sizes; placeholders here)
+  - record: qiki_storage_bytes
+    expr: 0  # replace with s3_bucket_size_bytes or exporter metric
+  - record: qiki_storage_cost_30d_usd
+    expr: (qiki_storage_bytes / 1024 / 1024 / 1024) * qiki_cost_per_gb_storage_usd
+
+  # Egress rough costs (needs CDN exporter; placeholder)
+  - record: qiki_egress_gb_30d
+    expr: 0
+  - record: qiki_egress_cost_30d_usd
+    expr: qiki_egress_gb_30d * qiki_cost_per_gb_egress_usd

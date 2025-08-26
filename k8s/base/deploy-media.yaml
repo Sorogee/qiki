@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: media, namespace: qikiworld }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: media } }
+  template:
+    metadata: { labels: { app: media } }
+    spec:
+      containers:
+        - name: media
+          image: ghcr.io/your-org/qikiworld-media:latest
+          ports: [{ containerPort: 5000 }]
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "512Mi" }
+

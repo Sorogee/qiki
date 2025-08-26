@@ -1,0 +1,5 @@
+Contact: mailto:security@yourdomain.com
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: en
+Policy: https://yourdomain.com/privacy
+Acknowledgments: https://yourdomain.com/hall-of-fame
