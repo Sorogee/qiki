@@ -4,8 +4,9 @@
       "url": [
         "http://localhost:3000/"
       ],
-      "startServerCommand": "npm run dev",
-      "numberOfRuns": 1
+      "startServerCommand": "next build && next start -p 3000",
+      "numberOfRuns": 1,
+      "startServerReadyPattern": "started server|ready - started server on|http://localhost:3000"
     },
     "assert": {
       "assertions": {
@@ -16,6 +17,9 @@
           }
         ]
       }
+    },
+    "settings": {
+      "chromeFlags": "--no-sandbox"
     }
   }
 }

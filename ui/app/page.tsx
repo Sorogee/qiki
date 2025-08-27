@@ -1,3 +1,4 @@
+"use client";
 // Sort controls
 function SortBar() {
   const url = typeof window !== 'undefined' ? new URL(window.location.href) : null;
@@ -9,7 +10,6 @@ function SortBar() {
     <button onClick={()=>set('top')} disabled={current==='top'}>Top</button>
   </div>);
 }
-'use client';
 import { useEffect, useState } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
