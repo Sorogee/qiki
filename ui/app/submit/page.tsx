@@ -1,50 +1,52 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useT } from '../../lib/i18n';
-import { withCsrfHeaders } from '@/app/lib/csrf';
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+'use client';
+import React, { useEffect, useState } from 'react';
 
-export default function Submit() {
-  const { t } = useT();
-  const [communities, setCommunities] = useState<any[]>([]);
-  const [communitySlug, setCommunity] = useState('');
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+export default function SubmitPage() {
+  const [communitySlug, setCommunitySlug] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [msg, setMsg] = useState<string|null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [cap, setCap] = useState<any | null>(null);
 
-  useEffect(()=>{ fetch(`${API}/api/communities`).then(r=>r.json()).then(setCommunities); },[]);
+  useEffect(() => {
+    // fetch captcha on mount if needed
+    (async () => {
+      try {
+        const r = await fetch(`${API}/api/captcha`);
+        if (r.ok) setCap(await r.json());
+      } catch { /* ignore */ }
+    })();
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setMsg(null);
-    const token = localStorage.getItem('token') || '';
-    const cap = await fetch(`${API}/api/captcha/new`).then(r=>r.json());
-    const res = await fetch(`${API}/api/posts`, await withCsrfHeaders({
-      method:'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}`, 'x-captcha-id': cap.id, 'x-captcha-answer': eval(cap.prompt.replace('= ?','')) },
-      body: JSON.stringify({ communitySlug, title, body }))
-    });
-    const data = await res.json();
-    if (!res.ok) setMsg(data.error||'Failed'); else setMsg('Posted!');
+    const token = (typeof window !== 'undefined' && localStorage.getItem('token')) || '';
+    try {
+      const res = await fetch(`${API}/api/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type':'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(cap ? { 'x-captcha-id': cap.id, 'x-captcha-answer': eval(String(cap.prompt).replace('= ?', '')) } : {})
+        },
+        body: JSON.stringify({ communitySlug, title, body })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) setMsg(data.error || 'Failed'); else setMsg('Posted!');
+    } catch { setMsg('Network error'); }
   }
 
   return (
-    <form onSubmit={submit} className="p-6 space-y-3" aria-labelledby="newPostHeading">
-      <h1 className="text-2xl font-semibold" id="newPostHeading">{t('New Post')}</h1>
-      {msg && <div className="text-sm opacity-80" aria-live="polite">{msg}</div>}
-      <label className="block" htmlFor="communitySel">{t('Community')}
-        <select id="communitySel" value={communitySlug} onChange={e=>setCommunity(e.target.value)} className="block border p-2" aria-required="true">
-          <option value="">Select community</option>
-          {communities.map((c:any)=>(<option key={c.slug} value={c.slug}>{c.name}</option>))}
-        </select>
-      </label>
-      <label className="block" htmlFor="titleInput">{t('Title')}
-        <input id="titleInput" value={title} onChange={e=>setTitle(e.target.value)} className="block border p-2 w-full" placeholder={t('Title')}/>
-      </label>
-      <label className="block" htmlFor="bodyInput">{t('Body')}
-        <textarea id="bodyInput" value={body} onChange={e=>setBody(e.target.value)} className="block border p-2 w-full" rows={6} placeholder={t('Body')}/>
-      </label>
-      <button className="btn" type="submit" aria-label="submit post">{t('Post')}</button>
+    <form onSubmit={submit} className="card form">
+      <h1>Submit</h1>
+      {msg && <div className="muted">{msg}</div>}
+      <label>Community Slug<input value={communitySlug} onChange={e=>setCommunitySlug(e.target.value)} required/></label>
+      <label>Title<input value={title} onChange={e=>setTitle(e.target.value)} required/></label>
+      <label>Body<textarea value={body} onChange={e=>setBody(e.target.value)} /></label>
+      <button type="submit">Post</button>
     </form>
   );
 }

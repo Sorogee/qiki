@@ -1,5 +1,5 @@
 export default function Head() {
-  const SITE = {process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'};
+  const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const title = "Security";
   const description = "Manage active sessions and sign out";
   const og = "/api/og/community?slug=home";

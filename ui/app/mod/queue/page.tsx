@@ -1,49 +1,68 @@
 'use client';
+'use client';
 import React, { useEffect, useState } from 'react';
-import { withCsrfHeaders } from '@/app/lib/csrf';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-export default function ModQueue() {
-  const [rows, setRows] = useState<any[]>([]);
-  const token = typeof window !== 'undefined' ? (localStorage.getItem('token') || '') : '';
+type QueueItem = any;
+
+export default function ModQueuePage() {
+  const [list, setList] = useState<QueueItem[]>([]);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  function getToken() {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('token') || '';
+  }
 
   async function load() {
-    const res = await fetch(`${API}/api/modqueue`, { headers: { 'Authorization': `Bearer ${token}` } });
-    if (res.ok) setRows(await res.json());
+    try {
+      const res = await fetch(`${API}/api/modqueue`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (!res.ok) { setMsg('Forbidden or error'); return; }
+      setList(await res.json());
+    } catch (e) {
+      setMsg('Network error');
+    }
   }
-  useEffect(()=>{ load(); },[]);
 
-  async function approve(id:string) {
-    await fetch(`${API}/api/modqueue/approve`, await withCsrfHeaders({ method:'POST', headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id })) });
+  useEffect(() => { load(); }, []);
+
+  async function approve(id: string) {
+    await fetch(`${API}/api/modqueue/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+      body: JSON.stringify({ id }),
+    });
     load();
   }
-  async function remove(id:string) {
-    await fetch(`${API}/api/modqueue/remove`, await withCsrfHeaders({ method:'POST', headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id })) });
+
+  async function removeItem(id: string) {
+    await fetch(`${API}/api/modqueue/remove`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+      body: JSON.stringify({ id }),
+    });
     load();
   }
 
   return (
-    <main style={{padding:16}}>
+    <div>
       <h1>Moderation Queue</h1>
-      <table style={{width:'100%', marginTop:12}}>
-        <thead><tr><th>Community</th><th>Author</th><th>Title</th><th>Reason</th><th>Queued At</th><th>Actions</th></tr></thead>
-        <tbody>
-          {rows.map(p => (
-            <tr key={p.id}>
-              <td>{p.community?.slug}</td>
-              <td>@{p.author?.username}</td>
-              <td>{p.title}</td>
-              <td>{p.modReason || '-'}</td>
-              <td>{p.modQueuedAt ? new Date(p.modQueuedAt).toLocaleString() : '-'}</td>
-              <td>
-                <button onClick={()=>approve(p.id)}>Approve</button>
-                <button onClick={()=>remove(p.id)} style={{marginLeft:8}}>Remove</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </main>
+      {msg && <div className="muted">{msg}</div>}
+      <ul className="list">
+        {list.map((item: any) => (
+          <li key={item.id} className="card">
+            <div className="muted">{new Date(item.createdAt).toLocaleString()}</div>
+            <div><b>{item.title || item.reason}</b></div>
+            <div style={{display:'flex', gap: 8, marginTop: 8}}>
+              <button onClick={() => approve(item.id)}>Approve</button>
+              <button onClick={() => removeItem(item.id)}>Remove</button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 export default function Head() {
-  const SITE = {process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'};
+  const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const title = "New Post";
   const description = "Create a new post";
   const og = "/api/og/community?slug=home";

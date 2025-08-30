@@ -16,7 +16,19 @@ export default function ModConsole() {
   }
   useEffect(()=>{ load(); }, []);
 
-  function toggle(t:Target){ setSel(s=>{ const k=`${t.type}:${t.id}`; const n={s}; if(n[k]) delete n[k]; else n[k]=t; return n; }); }
+  function toggle(t: Target) {
+  setSel(prev => {
+    const k = `${t.type}:${t.id}`;
+    if (prev[k]) {
+      // remove the key by returning a new object without it
+      const { [k]: _removed, ...rest } = prev;
+      return rest;
+    }
+    // add the key by spreading the previous state
+    return { ...prev, [k]: t };
+  });
+}
+
 
   async function act(action:string){
     const targets = Object.values(sel);
