@@ -1,36 +1,33 @@
-name: Release
+name: Release (ui)
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: [ "v*" ]
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: ui
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
           cache: npm
           cache-dependency-path: ui/package-lock.json
 
-      - name: Install & Build
-        working-directory: ui
-        run: |
-          npm ci --no-audit --no-fund
-          npm run build
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
 
-      - name: Zip build
-        run: |
-          cd ui
-          zip -r ../ui_build_${{ github.ref_name }}.zip .next public package.json package-lock.json
+      - name: Build
+        run: npm run build
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload build
+        uses: actions/upload-artifact@v4
         with:
-          files: ui_build_${{ github.ref_name }}.zip
+          name: ui-next-build
+          path: ui/.next

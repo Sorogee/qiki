@@ -1,4 +1,4 @@
-name: "CodeQL"
+name: CodeQL (ui)
 
 on:
   push:
@@ -6,30 +6,37 @@ on:
   pull_request:
     branches: [ "main" ]
   schedule:
-    - cron: '0 2 * * 1'
+    - cron: "0 2 * * 0"
 
 jobs:
   analyze:
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
-      actions: read
-    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: ui
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
-          build-mode: manual
 
-      - name: Build (ui/)
-        run: |
-          cd ui
-          npm ci --no-audit --no-fund
-          npm run build
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
 
-      - name: Perform CodeQL Analysis
+      - name: Build (if present)
+        run: npm run build --if-present
+
+      - name: Analyze
         uses: github/codeql-action/analyze@v3
