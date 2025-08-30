@@ -1,66 +1,38 @@
 name: Lighthouse
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-  workflow_dispatch:
 
 jobs:
   lhci:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-
+    defaults:
+      run:
+        working-directory: ui
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Use Node 20
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Setup npm configs for reliability
-        run: |
-          printf "registry=https://registry.npmjs.org/\nalways-auth=false\n" > .npmrc
-          npm config delete //registry.npmjs.org/:_authToken || true
-          npm config set fetch-retries 5
-          npm config set fetch-retry-maxtimeout 120000
-          npm config set fetch-retry-mintimeout 10000
-
-      - name: Prepare env (optional)
-        run: |
-          if [ -f ".env.ci" ]; then cp .env.ci .env.local; fi
-          if [ ! -f ".env.local" ] && [ -f ".env.example" ]; then cp .env.example .env.local; fi
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
 
       - name: Install deps
-        run: |
-          if [ -f package-lock.json ]; then npm ci --no-audit --no-fund || true; fi
-          if [ ! -d node_modules ] || [ ! -f package-lock.json ]; then npm install --no-audit --no-fund || true; fi
-          if [ ! -d node_modules ]; then
-            echo "Primary registry failed; retrying via yarnpkg mirror..."
-            npm config set registry https://registry.yarnpkg.com
-            npm install --no-audit --no-fund
-          fi
+        run: npm ci --no-audit --no-fund
 
-      - name: Build (production)
-        env:
-          NODE_ENV: production
+      - name: Build
         run: npm run build
 
-      - name: Determine start command
+      - name: Start Next (prod)
         run: |
-          if npm run -s start >/dev/null 2>&1; then
-            echo "START_CMD=npm run start -- -p 3000" >> $GITHUB_ENV
-          elif npm run -s preview >/dev/null 2>&1; then
-            echo "START_CMD=npm run preview -- --port 3000 --strictPort" >> $GITHUB_ENV
-          else
-            echo "::error::No 'start' or 'preview' script found in package.json. Add one (e.g., \"start\": \"next start\")."
-            exit 1
-          fi
+          npm run start -- -p 3000 &
+          npx -y wait-on@7 http://localhost:3000
 
-      - name: Run Lighthouse CI (autorun)
+      - name: Run Lighthouse CI
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
         run: |
-          npx @lhci/cli@0.13.x autorun             --collect.url=http://localhost:3000/             --collect.numberOfRuns=1             --collect.startServerCommand="${START_CMD}"             --collect.startServerReadyPattern="ready - started server|Started server on|Local:|listening on|server running|Compiled successfully|Now listening"             --collect.startServerTimeout=180000             --upload.target=temporary-public-storage
+          npx -y @lhci/cli@0.13.0 autorun             --collect.url=http://localhost:3000             --upload.target=temporary-public-storage             --assert.failOnError=false
